@@ -8,7 +8,7 @@ from typing import Optional, List, Type, Set, Literal
 
 import torch
 import torch.nn as nn
-from diffusers import UNet2DConditionModel
+from diffusers import UNet3DConditionModel
 from safetensors.torch import save_file
 
 
@@ -17,12 +17,11 @@ UNET_TARGET_REPLACE_MODULE_TRANSFORMER = [
     "Attention"
 ]
 UNET_TARGET_REPLACE_MODULE_CONV = [
-    "ResnetBlock2D",
-    "Downsample2D",
-    "Upsample2D",
-    "DownBlock2D",
-    "UpBlock2D",
-    
+    "ResnetBlock3D",  
+    "Downsample3D", 
+    "Upsample3D",   
+    "DownBlock3D",   
+    "UpBlock3D",     
 ]  # locon, 3clier
 
 LORA_PREFIX_UNET = "lora_unet"
@@ -82,10 +81,12 @@ class LoRAModule(nn.Module):
             kernel_size = org_module.kernel_size
             stride = org_module.stride
             padding = org_module.padding
-            self.lora_down = nn.Conv2d(
+            self.lora_down = nn.Conv3d( 
                 in_dim, self.lora_dim, kernel_size, stride, padding, bias=False
             )
-            self.lora_up = nn.Conv2d(self.lora_dim, out_dim, (1, 1), (1, 1), bias=False)
+            self.lora_up = nn.Conv3d(  
+                self.lora_dim, out_dim, (1, 1, 1), (1, 1, 1), bias=False
+            )
 
         if type(alpha) == torch.Tensor:
             alpha = alpha.detach().numpy()
@@ -115,7 +116,7 @@ class LoRAModule(nn.Module):
 class LoRANetwork(nn.Module):
     def __init__(
         self,
-        unet: UNet2DConditionModel,
+        unet: UNet3DConditionModel,
         rank: int = 4,
         multiplier: float = 1.0,
         alpha: float = 1.0,
